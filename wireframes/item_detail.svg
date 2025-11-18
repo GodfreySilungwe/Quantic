@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+  <style>
+    .bg{fill:#f8fafc}
+    .card{fill:#fff;stroke:#e5e7eb;stroke-width:1;rx:8}
+    .title{font: bold 20px sans-serif; fill:#0f172a}
+    .muted{font: 13px sans-serif; fill:#475569}
+    .btn{fill:#16a34a}
+    .btnText{font:14px sans-serif; fill:#fff}
+  </style>
+  <rect class="bg" x="0" y="0" width="900" height="600" />
+  <rect class="card" x="40" y="30" width="820" height="120" />
+  <text x="60" y="72" class="title">Espresso</text>
+  <text x="60" y="100" class="muted">Strong and short — 2.50</text>
+
+  <rect class="card" x="40" y="170" width="520" height="320" />
+  <text x="60" y="204" class="muted">Description</text>
+  <text x="60" y="230" class="muted">Ingredients, size options, and any allergen notes go here.</text>
+
+  <rect class="card" x="580" y="170" width="280" height="160" />
+  <text x="600" y="204" class="muted">Add to cart</text>
+  <rect x="640" y="260" width="160" height="44" class="btn"/>
+  <text x="684" y="290" class="btnText">Add (1)</text>
+
+  <text x="60" y="520" class="muted">Wireframe: Item detail with description, qty, and Add to Cart CTA.</text>
+</svg>

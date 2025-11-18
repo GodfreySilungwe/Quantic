@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="720" viewBox="0 0 1100 720">
+  <style>
+    .bg{fill:#fbfdff}
+    .card{fill:#fff;stroke:#e6eef6;stroke-width:1;rx:6}
+    .h{font:16px sans-serif;fill:#0b1220}
+    .muted{font:13px sans-serif;fill:#64748b}
+    .btn{fill:#ef4444}
+    .ok{fill:#10b981}
+  </style>
+  <rect class="bg" x="0" y="0" width="1100" height="720" />
+  <text x="40" y="56" class="h">Admin Dashboard</text>
+
+  <rect class="card" x="40" y="80" width="720" height="520" />
+  <text x="60" y="114" class="h">Orders</text>
+  <text x="60" y="150" class="muted">List of recent orders with status badges and quick actions</text>
+
+  <rect class="card" x="780" y="80" width="280" height="220" />
+  <text x="800" y="116" class="h">Quick stats</text>
+  <text x="800" y="150" class="muted">Orders today, revenue, avg prep time</text>
+
+  <rect class="card" x="780" y="320" width="280" height="280" />
+  <text x="800" y="356" class="h">Menu management</text>
+  <text x="800" y="388" class="muted">Add/Edit items, set availability</text>
+
+  <text x="40" y="620" class="muted">Wireframe: Admin UI to manage orders and menu. Minimal actions: update order status and CRUD menu.</text>
+</svg>

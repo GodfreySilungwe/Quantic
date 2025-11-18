@@ -1,0 +1,12 @@
+:root{
+  --max-width: 900px;
+  --muted:#666;
+}
+body { font-family: system-ui, Arial, sans-serif; margin: 0; padding: 0; }
+.app-header{ display:flex; gap:12px; padding:12px; background:#f5f5f5 }
+.app-main{ max-width:var(--max-width); margin:16px auto; padding:0 12px }
+.category{ margin-bottom:24px }
+.items{ display:flex; gap:12px; flex-wrap:wrap }
+.item-card{ border:1px solid #ddd; padding:12px; width:220px; border-radius:6px }
+.item-row{ display:flex; justify-content:space-between; align-items:center }
+.muted{ color:var(--muted); font-size:0.95rem }

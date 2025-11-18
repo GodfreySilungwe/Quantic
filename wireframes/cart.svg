@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640">
+  <style>
+    .bg{fill:#ffffff}
+    .card{fill:#f9fafb;stroke:#e6eef6;stroke-width:1;rx:8}
+    .h{font:16px sans-serif;fill:#0f172a}
+    .muted{font:13px sans-serif;fill:#6b7280}
+    .btn{fill:#2563eb}
+    .btnText{font:14px sans-serif;fill:#fff}
+  </style>
+  <rect class="bg" x="0" y="0" width="960" height="640" />
+  <text x="40" y="56" class="h">Your Cart</text>
+
+  <rect class="card" x="40" y="80" width="620" height="420" />
+  <text x="60" y="114" class="h">1 × Cappuccino — $3.50</text>
+  <text x="60" y="144" class="muted">Update qty or remove</text>
+
+  <rect class="card" x="680" y="80" width="220" height="200" />
+  <text x="700" y="116" class="h">Order Summary</text>
+  <text x="700" y="150" class="muted">Subtotal: $3.50</text>
+  <text x="700" y="176" class="muted">Tax: $0.35</text>
+  <text x="700" y="202" class="muted">Total: $3.85</text>
+
+  <rect x="680" y="300" width="220" height="48" class="btn"/>
+  <text x="728" y="332" class="btnText">Checkout</text>
+
+  <text x="40" y="520" class="muted">Wireframe: Cart page with item list and order summary. Checkout CTA leads to checkout flow.</text>
+</svg>

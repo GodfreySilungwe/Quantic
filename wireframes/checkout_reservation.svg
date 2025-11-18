@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="720" viewBox="0 0 1000 720">
+  <style>
+    .bg{fill:#f7fafc}
+    .card{fill:#fff;stroke:#e2e8f0;stroke-width:1;rx:8}
+    .h{font:16px sans-serif;fill:#0f172a}
+    .muted{font:13px sans-serif;fill:#6b7280}
+    .btn{fill:#059669}
+    .btnText{font:14px sans-serif;fill:#fff}
+  </style>
+  <rect class="bg" x="0" y="0" width="1000" height="720" />
+  <text x="40" y="56" class="h">Checkout / Reservation</text>
+
+  <rect class="card" x="40" y="80" width="620" height="480" />
+  <text x="60" y="116" class="h">Contact details</text>
+  <text x="60" y="150" class="muted">Name, Email, Phone</text>
+  <text x="60" y="190" class="h">Pickup / Reservation</text>
+  <text x="60" y="220" class="muted">Pickup time or Reservation date/time & party size</text>
+
+  <rect class="card" x="680" y="80" width="260" height="220" />
+  <text x="700" y="116" class="h">Order Summary</text>
+  <text x="700" y="150" class="muted">Items, subtotal, total</text>
+
+  <rect x="680" y="320" width="260" height="48" class="btn"/>
+  <text x="760" y="352" class="btnText">Place Order</text>
+
+  <text x="40" y="600" class="muted">Wireframe: Combined checkout and reservation form for MVP; minimal fields to confirm order/reservation.</text>
+</svg>

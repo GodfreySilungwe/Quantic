@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="700" viewBox="0 0 1000 700">
+  <style>
+    .bg{fill:#f7f7f8}
+    .card{fill:#fff;stroke:#d0d7de;stroke-width:1;rx:8}
+    .title{font: bold 22px sans-serif; fill:#1f2937}
+    .h{font: 16px sans-serif; fill:#374151}
+    .muted{font: 12px sans-serif; fill:#6b7280}
+    .btn{fill:#2563eb;rx:6}
+    .btnText{font:14px sans-serif;fill:#fff}
+  </style>
+  <rect class="bg" x="0" y="0" width="1000" height="700" />
+  <rect class="card" x="40" y="30" width="920" height="70" />
+  <text x="60" y="74" class="title">Cafe Fausse</text>
+  <text x="860" y="70" class="muted">Cart (0)</text>
+
+  <!-- Left: categories -->
+  <rect class="card" x="40" y="120" width="240" height="520" />
+  <text x="70" y="156" class="h">Categories</text>
+  <text x="70" y="190" class="muted">Coffee</text>
+  <text x="70" y="215" class="muted">Pastry</text>
+  <text x="70" y="240" class="muted">Sandwiches</text>
+
+  <!-- Right: items list -->
+  <rect class="card" x="300" y="120" width="660" height="520" />
+  <text x="320" y="156" class="h">Menu — Coffee</text>
+
+  <!-- Item row -->
+  <rect class="card" x="320" y="180" width="620" height="80" />
+  <text x="340" y="212" class="h">Espresso</text>
+  <text x="340" y="236" class="muted">Strong and short</text>
+  <rect x="820" y="200" width="100" height="36" class="btn"/>
+  <text x="850" y="224" class="btnText">Add</text>
+
+  <rect class="card" x="320" y="270" width="620" height="80" />
+  <text x="340" y="302" class="h">Cappuccino</text>
+  <text x="340" y="326" class="muted">With steamed milk</text>
+  <rect x="820" y="292" width="100" height="36" class="btn"/>
+  <text x="854" y="316" class="btnText">Add</text>
+
+  <!-- Bottom CTA -->
+  <rect x="760" y="620" width="160" height="44" class="btn"/>
+  <text x="792" y="648" class="btnText">View Cart</text>
+
+  <!-- Notes -->
+  <text x="60" y="660" class="muted">Wireframe: Menu screen showing categories, items, and Add to Cart actions.</text>
+</svg>

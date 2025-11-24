@@ -15,11 +15,22 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState('orders')
   const [orders, setOrders] = useState([])
   const [menuItems, setMenuItems] = useState([])
+  const [categories, setCategories] = useState([])
   const [error, setError] = useState(null)
 
   useEffect(() => {
     if (!adminSecret) return
     setError(null)
+    // fetch categories for the create form / mapping
+    // If adminSecret is available, prefer the admin endpoint. Otherwise fall back to the public /api/menu
+    const fetchCats = adminSecret
+      ? () => useAdminFetch('/api/admin/categories', adminSecret)
+      : () => fetch('/api/menu').then((r) => r.json()).then((cats) => cats.map((c) => ({ id: c.id, name: c.name })))
+
+    fetchCats()
+      .then(setCategories)
+      .catch(() => {})
+
     if (tab === 'orders') {
       useAdminFetch('/api/admin/orders', adminSecret)
         .then(setOrders)
@@ -61,12 +72,14 @@ export default function AdminDashboard() {
     const name = form.name.value
     const price = Math.round(parseFloat(form.price.value) * 100)
     const description = form.description.value
+    const categoryVal = form.category_id ? form.category_id.value : ''
+    const category_id = categoryVal ? parseInt(categoryVal, 10) : null
     if (!name || isNaN(price)) return setError('invalid inputs')
     try {
       const res = await fetch('/api/admin/menu_items', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
-        body: JSON.stringify({ name, price_cents: price, description }),
+        body: JSON.stringify({ name, price_cents: price, description, category_id }),
       })
       if (!res.ok) throw new Error('create failed')
       const data = await res.json()
@@ -148,6 +161,14 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <input name="price" placeholder="Price (e.g. 3.50)" />
+                </div>
+                <div>
+                  <select name="category_id">
+                    <option value="">-- select category --</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <input name="description" placeholder="Description" />

@@ -57,15 +57,34 @@ export default function AdminDashboard() {
     }
   }
 
-  async function toggleAvailable(item) {
+  // helper to perform admin requests and surface JSON/text errors
+  async function fetchAdmin(path, opts = {}) {
     if (!adminSecret) return promptForSecret()
+    opts.headers = { ...(opts.headers || {}), 'X-Admin-Secret': adminSecret }
     try {
-      const res = await fetch(`/api/admin/menu_items/${item.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
-        body: JSON.stringify({ available: !item.available }),
-      })
-      if (!res.ok) throw new Error('update failed')
+      const res = await fetch(path, opts)
+      const contentType = res.headers.get('content-type') || ''
+      if (res.ok) {
+        if (contentType.includes('application/json')) return await res.json()
+        return await res.text()
+      }
+      // read error body if available
+      let body = ''
+      try {
+        body = contentType.includes('application/json') ? JSON.stringify(await res.json()) : await res.text()
+      } catch (e) {
+        body = res.statusText
+      }
+      throw new Error(`HTTP ${res.status} ${res.statusText} — ${body}`)
+    } catch (err) {
+      // network error (CORS, connection refused, etc.)
+      throw new Error(`Network error: ${err.message}`)
+    }
+  }
+
+  async function toggleAvailable(item) {
+    try {
+      await fetchAdmin(`/api/admin/menu_items/${item.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ available: !item.available }) })
       setMenuItems((prev) => prev.map((m) => (m.id === item.id ? { ...m, available: !m.available } : m)))
     } catch (e) {
       setError(String(e))
@@ -73,14 +92,9 @@ export default function AdminDashboard() {
   }
 
   async function deleteItem(item) {
-    if (!adminSecret) return promptForSecret()
     if (!window.confirm(`Delete "${item.name}"?`)) return
     try {
-      const res = await fetch(`/api/admin/menu_items/${item.id}`, {
-        method: 'DELETE',
-        headers: { 'X-Admin-Secret': adminSecret },
-      })
-      if (!res.ok) throw new Error('delete failed')
+      await fetchAdmin(`/api/admin/menu_items/${item.id}`, { method: 'DELETE' })
       setMenuItems((prev) => prev.filter((m) => m.id !== item.id))
     } catch (e) {
       setError(String(e))
@@ -88,15 +102,22 @@ export default function AdminDashboard() {
   }
 
   async function updateItem(item, updates) {
-    if (!adminSecret) return promptForSecret()
     try {
-      const res = await fetch(`/api/admin/menu_items/${item.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
-        body: JSON.stringify(updates),
-      })
-      if (!res.ok) throw new Error('update failed')
-      setMenuItems((prev) => prev.map((m) => (m.id === item.id ? { ...m, ...updates } : m)))
+      if (updates && updates.imageFile) {
+        const formData = new FormData()
+        if ('name' in updates) formData.append('name', updates.name)
+        if ('price_cents' in updates) formData.append('price_cents', updates.price_cents)
+        if ('available' in updates) formData.append('available', updates.available)
+        formData.append('category_id', updates.category_id || item.category_id || '')
+        formData.append('description', updates.description || item.description || '')
+        formData.append('image', updates.imageFile)
+        await fetchAdmin(`/api/admin/menu_items/${item.id}`, { method: 'PUT', body: formData })
+      } else {
+        await fetchAdmin(`/api/admin/menu_items/${item.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updates) })
+      }
+      // refresh list from server to pick up any image_filename changes
+      const items = await useAdminFetch('/api/admin/menu_items', adminSecret)
+      setMenuItems(items)
       setEditingItem(null)
     } catch (e) {
       setError(String(e))
@@ -123,13 +144,7 @@ export default function AdminDashboard() {
         formData.append('image', form.image.files[0])
       }
 
-      const res = await fetch('/api/admin/menu_items', {
-        method: 'POST',
-        headers: { 'X-Admin-Secret': adminSecret }, // omit Content-Type so browser sets multipart boundary
-        body: formData,
-      })
-      if (!res.ok) throw new Error('create failed')
-      const data = await res.json()
+      await fetchAdmin('/api/admin/menu_items', { method: 'POST', body: formData })
       // refresh list
       const items = await useAdminFetch('/api/admin/menu_items', adminSecret)
       setMenuItems(items)
@@ -147,12 +162,7 @@ export default function AdminDashboard() {
     const position = form.cat_position ? parseInt(form.cat_position.value, 10) : 0
     if (!name) return setError('category name required')
     try {
-      const res = await fetch('/api/admin/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
-        body: JSON.stringify({ name, position }),
-      })
-      if (!res.ok) throw new Error('create failed')
+      await fetchAdmin('/api/admin/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, position }) })
       const cats = await useAdminFetch('/api/admin/categories', adminSecret)
       setCategories(cats)
       setEditingCategory(null)
@@ -163,14 +173,8 @@ export default function AdminDashboard() {
   }
 
   async function updateCategory(cat, updates) {
-    if (!adminSecret) return promptForSecret()
     try {
-      const res = await fetch(`/api/admin/categories/${cat.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
-        body: JSON.stringify(updates),
-      })
-      if (!res.ok) throw new Error('update failed')
+      await fetchAdmin(`/api/admin/categories/${cat.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updates) })
       setCategories((prev) => prev.map((c) => (c.id === cat.id ? { ...c, ...updates } : c)))
       setEditingCategory(null)
     } catch (e) {
@@ -179,14 +183,9 @@ export default function AdminDashboard() {
   }
 
   async function deleteCategory(cat) {
-    if (!adminSecret) return promptForSecret()
     if (!window.confirm(`Delete category "${cat.name}"?`)) return
     try {
-      const res = await fetch(`/api/admin/categories/${cat.id}`, {
-        method: 'DELETE',
-        headers: { 'X-Admin-Secret': adminSecret },
-      })
-      if (!res.ok) throw new Error('delete failed')
+      await fetchAdmin(`/api/admin/categories/${cat.id}`, { method: 'DELETE' })
       setCategories((prev) => prev.filter((c) => c.id !== cat.id))
     } catch (e) {
       setError(String(e))
@@ -312,14 +311,22 @@ export default function AdminDashboard() {
                         <td><input type="text" defaultValue={m.name} placeholder="Name" /></td>
                         <td><input type="number" defaultValue={(m.price_cents/100).toFixed(2)} placeholder="Price" step="0.01" /></td>
                         <td><input type="checkbox" defaultChecked={m.available} /></td>
-                        <td style={{ display: 'flex', gap: 8 }}>
-                          <button onClick={() => {
-                            const inputs = event.target.closest('tr').querySelectorAll('input')
-                            updateItem(m, {
-                              name: inputs[0].value,
-                              price_cents: Math.round(parseFloat(inputs[1].value) * 100),
-                              available: inputs[2].checked
-                            })
+                        <td style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <input type="file" accept="image/*" />
+                          <button onClick={(e) => {
+                            const row = e.target.closest('tr')
+                            const name = row.querySelector('input[type="text"]').value
+                            const priceVal = row.querySelector('input[type="number"]').value
+                            const available = row.querySelector('input[type="checkbox"]').checked
+                            const fileInput = row.querySelector('input[type="file"]')
+                            const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null
+                            const updates = {
+                              name,
+                              price_cents: Math.round(parseFloat(priceVal) * 100),
+                              available,
+                            }
+                            if (file) updates.imageFile = file
+                            updateItem(m, updates)
                           }}>Save</button>
                           <button onClick={() => setEditingItem(null)}>Cancel</button>
                         </td>

@@ -235,10 +235,12 @@ def admin_update_menu_item(item_id):
     mi = MenuItem.query.get(item_id)
     if not mi:
         return jsonify({'error': 'not found'}), 404
-    data = request.get_json() or {}
-    # also accept multipart/form-data for updating image
+    # accept multipart/form-data for updating image; if multipart, prefer request.form
     if request.content_type and request.content_type.startswith('multipart/form-data'):
-        data = {**data, **request.form.to_dict()}
+        data = request.form.to_dict() or {}
+    else:
+        # parse JSON silently to avoid raising on unsupported media types
+        data = request.get_json(silent=True) or {}
     if 'name' in data:
         mi.name = data['name']
     if 'description' in data:
@@ -265,8 +267,12 @@ def admin_update_menu_item(item_id):
             fname = secure_filename(img.filename)
             fname = f"{int(time.time())}_{fname}"
             save_path = os.path.join(images_dir, fname)
-            img.save(save_path)
-            mi.image_filename = fname
+            try:
+                img.save(save_path)
+                mi.image_filename = fname
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({'error': 'failed to save uploaded image', 'details': str(e)}), 500
     db.session.commit()
     return jsonify({'ok': True})
 
@@ -278,8 +284,17 @@ def admin_delete_menu_item(item_id):
     mi = MenuItem.query.get(item_id)
     if not mi:
         return jsonify({'error': 'not found'}), 404
-    db.session.delete(mi)
-    db.session.commit()
+    # prevent deletion if this item appears in past orders to keep order history intact
+    deps = OrderItem.query.filter_by(menu_item_id=mi.id).all()
+    if deps:
+        order_ids = sorted({d.order_id for d in deps})
+        return jsonify({'error': 'item referenced by existing orders; cannot delete', 'order_ids': order_ids}), 400
+    try:
+        db.session.delete(mi)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'delete failed', 'details': str(e)}), 500
     return jsonify({'ok': True}), 200
 
 

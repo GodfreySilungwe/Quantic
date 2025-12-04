@@ -2,24 +2,20 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 
-// Example card images served from backend `/api/images/*`.
-// If you add different filenames to the Images/ folder, update this list.
-const CARD_IMAGES = [
-  'gallery-ribeye-steak.webp',
-  'gallery-special-event.webp'
-]
 
 export default function ItemCard({ item }) {
   const { addToCart } = useCart()
-  const img = item && item.image_filename ? item.image_filename : CARD_IMAGES[(item.id || 0) % CARD_IMAGES.length]
+  const img = item && item.image_filename ? item.image_filename : null
 
   return (
     <div className="item-card">
-      <div
-        className="thumb"
-        style={{ backgroundImage: `url(/api/images/${img})` }}
-        aria-hidden
-      />
+      {img ? (
+        <div
+          className="thumb"
+          style={{ backgroundImage: `url(/api/images/${img})` }}
+          aria-hidden
+        />
+      ) : null}
 
       <div className="card-content">
         <h3 className="card-title">

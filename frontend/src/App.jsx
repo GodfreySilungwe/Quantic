@@ -46,7 +46,11 @@ function App() {
   useEffect(() => {
     fetch('/api/menu')
       .then((r) => r.json())
-      .then((data) => setCategories(data))
+      .then((data) => {
+        // new /api/menu returns { categories: [...], promotions: [...] }
+        const cats = Array.isArray(data) ? data : (data.categories || [])
+        setCategories(cats)
+      })
       .catch((err) => console.error('Failed to load menu:', err))
   }, [])
 

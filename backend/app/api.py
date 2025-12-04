@@ -6,7 +6,7 @@ from flask import Blueprint, jsonify, request
 from flask import send_from_directory, abort
 from werkzeug.utils import secure_filename
 from . import db
-from .models import MenuItem, Category, Order, OrderItem, Subscriber, Customer, Reservation
+from .models import MenuItem, Category, Order, OrderItem, Subscriber, Customer, Reservation, Promotion
 
 # Simple admin secret (dev-only). Configure ADMIN_SECRET in your environment or .env
 ADMIN_SECRET = os.getenv('ADMIN_SECRET', 'dev-secret')
@@ -27,7 +27,13 @@ def list_menu():
                 for i in items
             ]
         })
-    return jsonify(result)
+    # also include any active promotions
+    try:
+        promos = Promotion.query.filter_by(active=True).order_by(Promotion.created_at.desc()).all()
+        promotions = [{'id': p.id, 'title': p.title, 'percent': p.percent} for p in promos]
+    except Exception:
+        promotions = []
+    return jsonify({'categories': result, 'promotions': promotions})
 
 @api_bp.route('/cart/checkout', methods=['POST'])
 def checkout():

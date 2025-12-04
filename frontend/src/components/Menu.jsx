@@ -9,17 +9,48 @@ export default function Menu({ categories = [] }) {
 
   useEffect(() => {
     let mounted = true
-    fetch('/api/menu')
-      .then((r) => r.json())
-      .then((data) => {
-        if (!mounted) return
-        const flat = (data || []).flatMap((c) => (c.items || []).map((it) => ({ ...it, category: c.name })))
-        const selected = flat.slice(0, 3).map((it, idx) => ({ ...it, discount_pct: idx === 0 ? 25 : idx === 1 ? 15 : 10 }))
-        setPromos(selected)
-      })
-      .catch(() => {})
+
+    const fetchMenu = () => {
+      fetch('/api/menu')
+        .then((r) => r.json())
+        .then((data) => {
+          if (!mounted) return
+          // server returns { categories: [...], promotions: [...] }
+          const cats = Array.isArray(data) ? data : (data.categories || [])
+          const flat = (cats || []).flatMap((c) => (c.items || []).map((it) => ({ ...it, category: c.name })))
+          // if server provided promotions, use them (match by item id to attach discount_pct)
+          if (data && data.promotions && Array.isArray(data.promotions) && data.promotions.length > 0) {
+            // choose up to 3 promotions and map percent from server
+            const promosFromServer = data.promotions.slice(0, 3).map((pr, idx) => {
+              const item = flat.find((it) => it.id === pr.id) || flat[idx] || null
+              if (!item) return null
+              return { ...item, discount_pct: pr.percent }
+            }).filter(Boolean)
+            setPromos(promosFromServer)
+          } else {
+            const selected = flat.slice(0, 3).map((it, idx) => ({ ...it, discount_pct: idx === 0 ? 25 : idx === 1 ? 15 : 10 }))
+            setPromos(selected)
+          }
+        })
+        .catch(() => {})
+    }
+
+    fetchMenu()
+
+    // listen for admin updates (in same tab)
+    const onUpdate = () => fetchMenu()
+    window.addEventListener('promotions-updated', onUpdate)
+
+    // also listen for storage events (other tabs)
+    const onStorage = (e) => {
+      if (e.key === 'promotions_updated_at') fetchMenu()
+    }
+    window.addEventListener('storage', onStorage)
+
     return () => {
       mounted = false
+      window.removeEventListener('promotions-updated', onUpdate)
+      window.removeEventListener('storage', onStorage)
     }
   }, [])
 

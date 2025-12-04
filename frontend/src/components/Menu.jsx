@@ -18,18 +18,12 @@ export default function Menu({ categories = [] }) {
           // server returns { categories: [...], promotions: [...] }
           const cats = Array.isArray(data) ? data : (data.categories || [])
           const flat = (cats || []).flatMap((c) => (c.items || []).map((it) => ({ ...it, category: c.name })))
-          // if server provided promotions, use them (match by item id to attach discount_pct)
-          if (data && data.promotions && Array.isArray(data.promotions) && data.promotions.length > 0) {
-            // choose up to 3 promotions and map percent from server
-            const promosFromServer = data.promotions.slice(0, 3).map((pr, idx) => {
-              const item = flat.find((it) => it.id === pr.id) || flat[idx] || null
-              if (!item) return null
-              return { ...item, discount_pct: pr.percent }
-            }).filter(Boolean)
-            setPromos(promosFromServer)
+          // server now includes discount_percent on each item if it has an active promotion
+          const promoItems = flat.filter((it) => it.discount_percent !== null && it.discount_percent !== undefined)
+          if (promoItems.length > 0) {
+            setPromos(promoItems.slice(0, 3))
           } else {
-            const selected = flat.slice(0, 3).map((it, idx) => ({ ...it, discount_pct: idx === 0 ? 25 : idx === 1 ? 15 : 10 }))
-            setPromos(selected)
+            setPromos([])
           }
         })
         .catch(() => {})
@@ -59,7 +53,7 @@ export default function Menu({ categories = [] }) {
       <aside className="promotions">
         <h3>Promotions</h3>
         <p className="muted-small">Special offers — add them quickly to your cart.</p>
-        {promos.length === 0 && <p className="muted-small">Loading promotions…</p>}
+        {promos.length === 0 && <p className="muted-small">No active promotions</p>}
         <ul>
           {promos.map((p) => (
             <li key={p.id} style={{ marginBottom: 12 }}>
@@ -68,11 +62,11 @@ export default function Menu({ categories = [] }) {
                   <div style={{ fontWeight: 700 }}>{p.name}</div>
                   <div className="muted-small">{p.category} • {p.description}</div>
                   <div style={{ marginTop: 6 }}>
-                    <small className="muted-small">{p.discount_pct}% off</small>
+                    <small className="muted-small">{p.discount_percent}% off</small>
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontWeight: 700 }}>{((p.price_cents * (100 - p.discount_pct)) / 10000).toFixed(2)}</div>
+                  <div style={{ fontWeight: 700 }}>{((p.price_cents * (100 - p.discount_percent)) / 10000).toFixed(2)}</div>
                   <button className="btn" onClick={() => addToCart(p, 1)} style={{ marginTop: 6 }}>Add</button>
                 </div>
               </div>

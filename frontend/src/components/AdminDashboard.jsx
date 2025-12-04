@@ -16,6 +16,7 @@ export default function AdminDashboard() {
   const [orders, setOrders] = useState([])
   const [menuItems, setMenuItems] = useState([])
   const [categories, setCategories] = useState([])
+  const [promotions, setPromotions] = useState([])
   const [error, setError] = useState(null)
   const [editingItem, setEditingItem] = useState(null)
   const [editingCategory, setEditingCategory] = useState(null)
@@ -44,6 +45,10 @@ export default function AdminDashboard() {
     } else if (tab === 'categories') {
       useAdminFetch('/api/admin/categories', adminSecret)
         .then(setCategories)
+        .catch((e) => setError(e.message))
+    } else if (tab === 'promotions') {
+      useAdminFetch('/api/admin/promotions', adminSecret)
+        .then(setPromotions)
         .catch((e) => setError(e.message))
     }
   }, [tab, adminSecret])
@@ -192,6 +197,68 @@ export default function AdminDashboard() {
     }
   }
 
+  function notifyPromotionsUpdated() {
+    try {
+      window.dispatchEvent(new CustomEvent('promotions-updated'))
+      localStorage.setItem('promotions_updated_at', String(Date.now()))
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  async function togglePromoActive(promo) {
+    try {
+      await fetchAdmin(`/api/admin/promotions/${promo.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ active: !promo.active }) })
+      setPromotions((prev) => prev.map((p) => (p.id === promo.id ? { ...p, active: !p.active } : p)))
+      notifyPromotionsUpdated()
+    } catch (e) {
+      setError(String(e))
+    }
+  }
+
+  async function updatePromoPercent(promo) {
+    const newPct = window.prompt('Discount percent (0-100)', String(promo.percent))
+    if (newPct === null) return
+    try {
+      await fetchAdmin(`/api/admin/promotions/${promo.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ percent: parseInt(newPct, 10) }) })
+      setPromotions((prev) => prev.map((p) => (p.id === promo.id ? { ...p, percent: parseInt(newPct, 10) } : p)))
+      notifyPromotionsUpdated()
+    } catch (e) {
+      setError(String(e))
+    }
+  }
+
+  async function deletePromo(promo) {
+    const item = menuItems.find((m) => m.id === promo.menu_item_id)
+    const itemName = item ? item.name : `item ${promo.menu_item_id}`
+    if (!window.confirm(`Delete promotion for "${itemName}"?`)) return
+    try {
+      await fetchAdmin(`/api/admin/promotions/${promo.id}`, { method: 'DELETE' })
+      setPromotions((prev) => prev.filter((p) => p.id !== promo.id))
+      notifyPromotionsUpdated()
+    } catch (e) {
+      setError(String(e))
+    }
+  }
+
+  async function createPromo(e) {
+    e.preventDefault()
+    const form = e.target
+    const menu_item_id = parseInt(form.menu_item_id.value, 10)
+    const percent = parseInt(form.percent.value, 10)
+    const active = form.active.checked
+    if (!menu_item_id || isNaN(percent)) return setError('invalid inputs')
+    try {
+      await fetchAdmin('/api/admin/promotions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ menu_item_id, percent, active }) })
+      const promos = await useAdminFetch('/api/admin/promotions', adminSecret)
+      setPromotions(promos)
+      form.reset()
+      notifyPromotionsUpdated()
+    } catch (e) {
+      setError(String(e))
+    }
+  }
+
   return (
     <div>
       <h2>Admin Dashboard</h2>
@@ -208,6 +275,7 @@ export default function AdminDashboard() {
             <button onClick={() => setTab('orders')} disabled={tab === 'orders'}>Orders</button>
             <button onClick={() => setTab('categories')} disabled={tab === 'categories'} style={{ marginLeft: 8 }}>Categories</button>
             <button onClick={() => setTab('menu')} disabled={tab === 'menu'} style={{ marginLeft: 8 }}>Menu Items</button>
+            <button onClick={() => setTab('promotions')} disabled={tab === 'promotions'} style={{ marginLeft: 8 }}>Promotions</button>
           </div>
 
           {error && <div style={{ color: 'red' }}>{error}</div>}
@@ -370,6 +438,59 @@ export default function AdminDashboard() {
                   <label>Image</label>
                   <input type="file" name="image" accept="image/*" />
                 </div>
+                <div style={{ marginTop: 8 }}>
+                  <button type="submit">Create</button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {tab === 'promotions' && (
+            <div>
+              <h3>Promotions</h3>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Discount %</th>
+                    <th>Active</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {promotions.map((p) => {
+                    const item = menuItems.find((m) => m.id === p.menu_item_id)
+                    const itemName = item ? item.name : `item ${p.menu_item_id}`
+                    return (
+                      <tr key={p.id}>
+                        <td>{itemName}</td>
+                        <td>{p.percent}%</td>
+                        <td>{p.active ? 'yes' : 'no'}</td>
+                        <td style={{ display: 'flex', gap: 8 }}>
+                          <button onClick={() => togglePromoActive(p)}>{p.active ? 'Disable' : 'Enable'}</button>
+                          <button onClick={() => updatePromoPercent(p)}>Edit %</button>
+                          <button onClick={() => deletePromo(p)} style={{ background: '#d9534f', color: 'white' }}>Delete</button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+
+              <h4 style={{ marginTop: 12 }}>Create promotion for item</h4>
+              <form onSubmit={createPromo}>
+                <div>
+                  <select name="menu_item_id" required>
+                    <option value="">-- select item --</option>
+                    {menuItems.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name} — ${(m.price_cents / 100).toFixed(2)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <input name="percent" type="number" min="0" max="100" placeholder="Discount %" required />
+                </div>
+                <div><label><input name="active" type="checkbox" defaultChecked /> Active</label></div>
                 <div style={{ marginTop: 8 }}>
                   <button type="submit">Create</button>
                 </div>

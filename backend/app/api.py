@@ -16,6 +16,13 @@ api_bp = Blueprint('api', __name__)
 @api_bp.route('/menu', methods=['GET'])
 def list_menu():
     categories = Category.query.order_by(Category.position).all()
+    # fetch all active promotions (keyed by menu_item_id)
+    try:
+        active_promos = {p.menu_item_id: p.percent for p in Promotion.query.filter_by(active=True).all()}
+    except Exception:
+        # promotions table may not exist yet
+        active_promos = {}
+    
     result = []
     for c in categories:
         items = MenuItem.query.filter_by(category_id=c.id).all()
@@ -23,17 +30,19 @@ def list_menu():
             'id': c.id,
             'name': c.name,
             'items': [
-                {'id': i.id, 'name': i.name, 'description': i.description, 'price_cents': i.price_cents, 'available': i.available, 'image_filename': getattr(i, 'image_filename', None)}
+                {
+                    'id': i.id,
+                    'name': i.name,
+                    'description': i.description,
+                    'price_cents': i.price_cents,
+                    'available': i.available,
+                    'image_filename': getattr(i, 'image_filename', None),
+                    'discount_percent': active_promos.get(i.id)  # None if no discount, otherwise the percent
+                }
                 for i in items
             ]
         })
-    # also include any active promotions
-    try:
-        promos = Promotion.query.filter_by(active=True).order_by(Promotion.created_at.desc()).all()
-        promotions = [{'id': p.id, 'title': p.title, 'percent': p.percent} for p in promos]
-    except Exception:
-        promotions = []
-    return jsonify({'categories': result, 'promotions': promotions})
+    return jsonify({'categories': result, 'promotions': list(active_promos.items())})
 
 @api_bp.route('/cart/checkout', methods=['POST'])
 def checkout():
@@ -398,6 +407,82 @@ def admin_list_reservations():
             'created_at': r.created_at.isoformat()
         })
     return jsonify(out)
+
+
+@api_bp.route('/admin/promotions', methods=['GET'])
+def admin_list_promotions():
+    if not _is_admin(request):
+        return jsonify({'error': 'unauthorized'}), 401
+    try:
+        promos = Promotion.query.order_by(Promotion.created_at.desc()).all()
+        return jsonify([{'id': p.id, 'menu_item_id': p.menu_item_id, 'percent': p.percent, 'active': p.active} for p in promos])
+    except Exception:
+        # promotions table doesn't exist yet
+        return jsonify([])
+
+
+@api_bp.route('/admin/promotions', methods=['POST'])
+def admin_create_promotion():
+    if not _is_admin(request):
+        return jsonify({'error': 'unauthorized'}), 401
+    data = request.get_json() or {}
+    menu_item_id = data.get('menu_item_id')
+    percent = data.get('percent')
+    active = bool(data.get('active', True))
+    if menu_item_id is None or percent is None:
+        return jsonify({'error': 'menu_item_id and percent are required'}), 400
+    # check if item exists
+    item = MenuItem.query.get(menu_item_id)
+    if not item:
+        return jsonify({'error': f'menu item {menu_item_id} not found'}), 404
+    # check if promotion already exists for this item
+    existing = Promotion.query.filter_by(menu_item_id=menu_item_id).first()
+    if existing:
+        return jsonify({'error': f'promotion already exists for item {menu_item_id}'}), 400
+    try:
+        percent = int(percent)
+        if percent < 0 or percent > 100:
+            raise ValueError()
+    except Exception:
+        return jsonify({'error': 'percent must be an integer 0-100'}), 400
+    promo = Promotion(menu_item_id=menu_item_id, percent=percent, active=active)
+    db.session.add(promo)
+    db.session.commit()
+    return jsonify({'id': promo.id, 'menu_item_id': promo.menu_item_id, 'percent': promo.percent, 'active': promo.active}), 201
+
+
+@api_bp.route('/admin/promotions/<int:pid>', methods=['PUT', 'PATCH'])
+def admin_update_promotion(pid):
+    if not _is_admin(request):
+        return jsonify({'error': 'unauthorized'}), 401
+    promo = Promotion.query.get(pid)
+    if not promo:
+        return jsonify({'error': 'not found'}), 404
+    data = request.get_json() or {}
+    if 'percent' in data:
+        try:
+            p = int(data['percent'])
+            if p < 0 or p > 100:
+                raise ValueError()
+            promo.percent = p
+        except Exception:
+            return jsonify({'error': 'percent must be an integer 0-100'}), 400
+    if 'active' in data:
+        promo.active = bool(data['active'])
+    db.session.commit()
+    return jsonify({'ok': True})
+
+
+@api_bp.route('/admin/promotions/<int:pid>', methods=['DELETE'])
+def admin_delete_promotion(pid):
+    if not _is_admin(request):
+        return jsonify({'error': 'unauthorized'}), 401
+    promo = Promotion.query.get(pid)
+    if not promo:
+        return jsonify({'error': 'not found'}), 404
+    db.session.delete(promo)
+    db.session.commit()
+    return jsonify({'ok': True}), 200
 
 
 @api_bp.route('/images/<path:filename>')

@@ -21,6 +21,13 @@ export default function AdminDashboard() {
   const [editingItem, setEditingItem] = useState(null)
   const [editingCategory, setEditingCategory] = useState(null)
 
+  // dedupe menu items for dropdowns
+  const uniqueMenuItems = React.useMemo(() => {
+    const map = new Map()
+    for (const it of menuItems || []) map.set(it.id, it)
+    return Array.from(map.values())
+  }, [menuItems])
+
   useEffect(() => {
     if (!adminSecret) return
     setError(null)
@@ -42,23 +49,35 @@ export default function AdminDashboard() {
       useAdminFetch('/api/admin/menu_items', adminSecret)
         .then(setMenuItems)
         .catch((e) => setError(e.message))
-    } else if (tab === 'promotions') {
-      useAdminFetch('/api/admin/promotions', adminSecret)
-        .then(setPromotions)
-        .catch((e) => setError(e.message))
     } else if (tab === 'categories') {
       useAdminFetch('/api/admin/categories', adminSecret)
         .then(setCategories)
         .catch((e) => setError(e.message))
     } else if (tab === 'promotions') {
-      // ensure menu items are loaded so the create-promotion dropdown can populate
-      useAdminFetch('/api/admin/menu_items', adminSecret)
-        .then(setMenuItems)
-        .catch(() => {})
-
-      useAdminFetch('/api/admin/promotions', adminSecret)
-        .then(setPromotions)
-        .catch((e) => setError(e.message))
+      // load menu items for dropdown. If admin secret is present, use admin endpoint;
+      // otherwise fall back to public `/api/menu` so the dropdown still shows items.
+      if (adminSecret) {
+        useAdminFetch('/api/admin/menu_items', adminSecret).then(setMenuItems).catch(() => {})
+        useAdminFetch('/api/admin/promotions', adminSecret).then(setPromotions).catch((e) => setError(e.message))
+      } else {
+        // fetch public menu and flatten items
+        fetch('/api/menu')
+          .then((r) => r.json())
+          .then((data) => {
+            // `/api/menu` may return an array or an object { categories: [...] }
+            const cats = Array.isArray(data) ? data : (data.categories || [])
+            const items = []
+            for (const c of cats) {
+              for (const it of (c.items || [])) {
+                items.push({ id: it.id, name: it.name, price_cents: it.price_cents, category_id: c.id, description: it.description, available: it.available, image_filename: it.image_filename })
+              }
+            }
+            setMenuItems(items)
+          })
+          .catch(() => {})
+        // no admin promotions without secret
+        setPromotions([])
+      }
     }
   }, [tab, adminSecret])
 
@@ -380,80 +399,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {tab === 'promotions' && (
-            <div>
-              <h3>Promotions</h3>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    <th>Title</th>
-                    <th>Percent</th>
-                    <th>Active</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {promotions.map((p) => (
-                    <tr key={p.id}>
-                      <td>{p.title}</td>
-                      <td>{p.percent}%</td>
-                      <td>{p.active ? 'yes' : 'no'}</td>
-                      <td style={{ display: 'flex', gap: 8 }}>
-                        <button onClick={async () => {
-                          try {
-                            await fetchAdmin(`/api/admin/promotions/${p.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ active: !p.active }) })
-                            setPromotions((prev) => prev.map((pp) => (pp.id === p.id ? { ...pp, active: !pp.active } : pp)))
-                            notifyPromotionsUpdated()
-                          } catch (e) { setError(String(e)) }
-                        }}>{p.active ? 'Disable' : 'Enable'}</button>
-                        <button onClick={async () => {
-                          const title = window.prompt('Edit title', p.title)
-                          if (title === null) return
-                          const pct = window.prompt('Percent (0-100)', String(p.percent))
-                          if (pct === null) return
-                          try {
-                            await fetchAdmin(`/api/admin/promotions/${p.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, percent: parseInt(pct, 10) }) })
-                            setPromotions((prev) => prev.map((pp) => (pp.id === p.id ? { ...pp, title, percent: parseInt(pct, 10) } : pp)))
-                            notifyPromotionsUpdated()
-                          } catch (e) { setError(String(e)) }
-                        }}>Edit</button>
-                        <button onClick={async () => {
-                          if (!window.confirm(`Delete promotion "${p.title}"?`)) return
-                          try {
-                            await fetchAdmin(`/api/admin/promotions/${p.id}`, { method: 'DELETE' })
-                            setPromotions((prev) => prev.filter((pp) => pp.id !== p.id))
-                            notifyPromotionsUpdated()
-                          } catch (e) { setError(String(e)) }
-                        }} style={{ background: '#d9534f', color: 'white' }}>Delete</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              <h4 style={{ marginTop: 12 }}>Create new promotion</h4>
-              <form onSubmit={async (e) => {
-                e.preventDefault()
-                const form = e.target
-                const title = form.title.value
-                const percent = parseInt(form.percent.value, 10)
-                const active = form.active.checked
-                if (!title || isNaN(percent)) return setError('invalid inputs')
-                try {
-                  await fetchAdmin('/api/admin/promotions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, percent, active }) })
-                  const items = await useAdminFetch('/api/admin/promotions', adminSecret)
-                  setPromotions(items)
-                  form.reset()
-                  notifyPromotionsUpdated()
-                } catch (e) { setError(String(e)) }
-              }}>
-                <div><input name="title" placeholder="Title" required /></div>
-                <div><input name="percent" type="number" min="0" max="100" placeholder="Percent" required /></div>
-                <div><label><input name="active" type="checkbox" defaultChecked /> Active</label></div>
-                <div style={{ marginTop: 8 }}><button type="submit">Create</button></div>
-              </form>
-            </div>
-          )}
+          
 
           {tab === 'menu' && (
             <div>

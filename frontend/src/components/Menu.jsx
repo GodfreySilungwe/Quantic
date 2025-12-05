@@ -89,7 +89,7 @@ export default function Menu({ categories = [], searchQuery = '', onSearchChange
         {searchQuery ? (
           // filtered search results view
           <section style={{ marginBottom: 24 }}>
-            <h2>Search Results</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16, background: 'linear-gradient(90deg, #2b8a78 0%, #1f5a52 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>🔍 Search Results</h2>
             <div className="items">
               {categories
                 .flatMap((c) =>
@@ -106,16 +106,30 @@ export default function Menu({ categories = [], searchQuery = '', onSearchChange
           </section>
         ) : (
           // normal category view
-          categories.map((c) => (
-            <section key={c.id} className="category">
-              <h2>{c.name}</h2>
-              <div className="items">
-                {(c.items || []).map((it) => (
-                  <ItemCard key={it.id} item={it} />
-                ))}
-              </div>
-            </section>
-          ))
+          categories.map((c, idx) => {
+            const colors = [
+              { bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', icon: '☕' },
+              { bg: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', icon: '🍰' },
+              { bg: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', icon: '🥤' },
+              { bg: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', icon: '🌿' },
+              { bg: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', icon: '⭐' },
+              { bg: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)', icon: '✨' }
+            ]
+            const color = colors[idx % colors.length]
+            return (
+              <section key={c.id} className="category" style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                  <div style={{ fontSize: 32 }}>{color.icon}</div>
+                  <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800, background: color.bg, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', letterSpacing: '-0.5px' }}>{c.name}</h2>
+                </div>
+                <div className="items">
+                  {(c.items || []).map((it) => (
+                    <ItemCard key={it.id} item={it} />
+                  ))}
+                </div>
+              </section>
+            )
+          })
         )}
 
         <section className="home-hero" style={{ padding: 20, borderTop: '1px solid #eee', marginTop: 20 }}>

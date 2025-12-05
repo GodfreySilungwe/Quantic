@@ -57,7 +57,7 @@ body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 
 }
 
 /* badge for cart count */
-.cart-badge{ display:inline-block; min-width:20px; padding:2px 8px; border-radius:999px; background:var(--accent); color:white; font-size:12px; margin-left:8px }
+.cart-badge{ display:inline-block; min-width:20px; padding:2px 8px; border-radius:999px; background:var(--accent); color:#07122a; font-size:12px; margin-left:8px }
 
 /* Hero / home section */
 .home-hero{ background:var(--surface); border-radius:10px; padding:12px 20px; box-shadow:var(--card-shadow); display:flex; justify-content:space-between; align-items:center; min-height:72px; position:relative; overflow:hidden }
@@ -104,6 +104,31 @@ label{ font-weight:600; display:block; margin-bottom:6px }
 /* Gallery images */
 .gallery-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px }
 .gallery-grid img{ width:100%; height:160px; object-fit:cover; border-radius:8px; box-shadow:var(--card-shadow) }
+
+/* Lightbox animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.gallery-hover:hover {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+}
+
+.gallery-hover:hover .zoom-icon {
+  opacity: 1 !important;
+}
 
 /* Responsive */
 @media (max-width:720px){

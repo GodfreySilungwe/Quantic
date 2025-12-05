@@ -23,7 +23,9 @@ function HeaderBar({ searchQuery, onSearchChange }) {
     background: '#ff6b6b',
     color: 'white',
     fontSize: 12,
-    marginLeft: 6
+    marginLeft: 6,
+    WebkitTextFillColor: 'white',
+    textFillColor: 'white'
   }
 
   const handleSearchChange = (e) => {

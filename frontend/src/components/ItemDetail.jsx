@@ -12,7 +12,9 @@ export default function ItemDetail() {
     setLoading(true)
     fetch('/api/menu')
       .then((r) => r.json())
-      .then((cats) => {
+      .then((data) => {
+        // /api/menu may return an array or an object { categories: [...], promotions: [...] }
+        const cats = Array.isArray(data) ? data : (data.categories || [])
         let found = null
         for (const c of cats) {
           const f = (c.items || []).find((it) => String(it.id) === String(id))

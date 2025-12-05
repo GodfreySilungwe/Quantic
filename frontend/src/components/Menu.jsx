@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import ItemCard from './ItemCard'
 import { useCart } from '../context/CartContext'
 
-export default function Menu({ categories = [] }) {
+export default function Menu({ categories = [], searchQuery = '', onSearchChange }) {
   const { addToCart } = useCart()
   const [promos, setPromos] = useState([])
 
@@ -50,24 +50,34 @@ export default function Menu({ categories = [] }) {
 
   return (
     <div className="menu menu-grid">
-      <aside className="promotions">
-        <h3>Promotions</h3>
-        <p className="muted-small">Special offers — add them quickly to your cart.</p>
-        {promos.length === 0 && <p className="muted-small">No active promotions</p>}
-        <ul>
+      <aside className="promotions" style={{ background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)', color: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 8px 24px rgba(255, 107, 107, 0.3)' }}>
+        <div style={{ marginBottom: 20 }}>
+          <h2 style={{ margin: '0 0 8px 0', fontSize: 28, fontWeight: 800, letterSpacing: '-0.5px' }}>🎉 BIG DISCOUNTS</h2>
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 500, opacity: 0.95 }}>Limited-time offers on selected items</p>
+        </div>
+
+        {promos.length === 0 && (
+          <div style={{ padding: '20px 0', textAlign: 'center', opacity: 0.9 }}>
+            <p style={{ margin: 0, fontSize: 14 }}>No active promotions at the moment</p>
+          </div>
+        )}
+
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
           {promos.map((p) => (
-            <li key={p.id} style={{ marginBottom: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: 700 }}>{p.name}</div>
-                  <div className="muted-small">{p.category} • {p.description}</div>
-                  <div style={{ marginTop: 6 }}>
-                    <small className="muted-small">{p.discount_percent}% off</small>
+            <li key={p.id} style={{ marginBottom: 16, padding: '16px', background: 'rgba(255, 255, 255, 0.15)', borderRadius: '8px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{p.name}</div>
+                  <div style={{ fontSize: 12, opacity: 0.9, marginBottom: 8 }}>{p.category}</div>
+                  <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 8, lineHeight: 1.4 }}>{p.description}</div>
+                  <div style={{ display: 'inline-block', background: 'rgba(255, 255, 255, 0.25)', padding: '4px 10px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>
+                    {p.discount_percent}% OFF
                   </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontWeight: 700 }}>{((p.price_cents * (100 - p.discount_percent)) / 10000).toFixed(2)}</div>
-                  <button className="btn" onClick={() => addToCart(p, 1)} style={{ marginTop: 6 }}>Add</button>
+                <div style={{ textAlign: 'right', minWidth: 80 }}>
+                  <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 4 }}>Now:</div>
+                  <div style={{ fontWeight: 800, fontSize: 22, marginBottom: 8 }}>${((p.price_cents * (100 - p.discount_percent)) / 10000).toFixed(2)}</div>
+                  <button className="btn" onClick={() => addToCart(p, 1)} style={{ background: 'white', color: '#ff6b6b', border: 'none', padding: '8px 14px', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>Add</button>
                 </div>
               </div>
             </li>
@@ -76,16 +86,37 @@ export default function Menu({ categories = [] }) {
       </aside>
 
       <main className="menu-main">
-        {categories.map((c) => (
-          <section key={c.id} className="category">
-            <h2>{c.name}</h2>
+        {searchQuery ? (
+          // filtered search results view
+          <section style={{ marginBottom: 24 }}>
+            <h2>Search Results</h2>
             <div className="items">
-              {(c.items || []).map((it) => (
-                <ItemCard key={it.id} item={it} />
-              ))}
+              {categories
+                .flatMap((c) =>
+                  (c.items || []).map((it) => ({ ...it, category: c }))
+                )
+                .filter((it) =>
+                  it.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  it.description.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+                .map((it) => (
+                  <ItemCard key={it.id} item={it} />
+                ))}
             </div>
           </section>
-        ))}
+        ) : (
+          // normal category view
+          categories.map((c) => (
+            <section key={c.id} className="category">
+              <h2>{c.name}</h2>
+              <div className="items">
+                {(c.items || []).map((it) => (
+                  <ItemCard key={it.id} item={it} />
+                ))}
+              </div>
+            </section>
+          ))
+        )}
 
         <section className="home-hero" style={{ padding: 20, borderTop: '1px solid #eee', marginTop: 20 }}>
           <h1 style={{ margin: 0 }}>Café Fausse</h1>

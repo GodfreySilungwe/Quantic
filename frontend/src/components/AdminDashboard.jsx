@@ -16,6 +16,7 @@ export default function AdminDashboard() {
   const [orders, setOrders] = useState([])
   const [menuItems, setMenuItems] = useState([])
   const [categories, setCategories] = useState([])
+  const [reservations, setReservations] = useState([])
   const [promotions, setPromotions] = useState([])
   const [error, setError] = useState(null)
   const [editingItem, setEditingItem] = useState(null)
@@ -44,6 +45,10 @@ export default function AdminDashboard() {
     if (tab === 'orders') {
       useAdminFetch('/api/admin/orders', adminSecret)
         .then(setOrders)
+        .catch((e) => setError(e.message))
+    } else if (tab === 'reservations') {
+      useAdminFetch('/api/admin/reservations', adminSecret)
+        .then(setReservations)
         .catch((e) => setError(e.message))
     } else if (tab === 'menu') {
       useAdminFetch('/api/admin/menu_items', adminSecret)
@@ -315,6 +320,7 @@ export default function AdminDashboard() {
             <button onClick={() => setTab('categories')} disabled={tab === 'categories'} style={{ marginLeft: 8 }}>Categories</button>
             <button onClick={() => setTab('menu')} disabled={tab === 'menu'} style={{ marginLeft: 8 }}>Menu Items</button>
             <button onClick={() => setTab('promotions')} disabled={tab === 'promotions'} style={{ marginLeft: 8 }}>Promotions</button>
+            <button onClick={() => setTab('reservations')} disabled={tab === 'reservations'} style={{ marginLeft: 8 }}>Reservations</button>
           </div>
 
           {error && <div style={{ color: 'red' }}>{error}</div>}
@@ -326,7 +332,7 @@ export default function AdminDashboard() {
               <ul>
                 {orders.map((o) => (
                   <li key={o.id} style={{ marginBottom: 8 }}>
-                    <strong>#{o.id}</strong> — {o.customer_name} — {(o.total_cents/100).toFixed(2)} — {o.status}
+                      <strong>#{o.id}</strong> — {o.customer_name} — {o.customer_phone} — {(o.total_cents/100).toFixed(2)} — {o.status}
                     <div>
                       {o.items.map((it, idx) => (
                         <div key={idx}>item {it.menu_item_id} x {it.qty} @ {(it.unit_price_cents/100).toFixed(2)}</div>
@@ -335,6 +341,54 @@ export default function AdminDashboard() {
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {tab === 'reservations' && (
+            <div>
+              <h3>Reservations</h3>
+              {reservations.length === 0 && <p>No reservations found</p>}
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Customer</th>
+                    <th>Time</th>
+                    <th>Table</th>
+                    <th>Guests</th>
+                    <th>Created</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reservations.map((r) => (
+                    <tr key={r.id}>
+                      <td>{r.id}</td>
+                      <td>
+                        {r.customer?.name}
+                        <br />
+                        <small>{r.customer?.email}</small>
+                        {r.customer?.phone && (
+                          <div style={{ marginTop: 6 }}><small>📞 {r.customer.phone}</small></div>
+                        )}
+                      </td>
+                      <td>{new Date(r.time_slot).toLocaleString()}</td>
+                      <td>{r.table_number}</td>
+                      <td>{r.guests}</td>
+                      <td>{new Date(r.created_at).toLocaleString()}</td>
+                      <td style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={async () => {
+                          if (!window.confirm('Cancel this reservation?')) return
+                          try {
+                            await fetchAdmin(`/api/admin/reservations/${r.id}`, { method: 'DELETE' })
+                            setReservations((prev) => prev.filter((x) => x.id !== r.id))
+                          } catch (e) { setError(String(e)) }
+                        }} style={{ background: '#d9534f', color: 'white' }}>Cancel</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
 

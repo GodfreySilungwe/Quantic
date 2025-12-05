@@ -409,6 +409,22 @@ def admin_list_reservations():
     return jsonify(out)
 
 
+@api_bp.route('/admin/reservations/<int:res_id>', methods=['DELETE'])
+def admin_delete_reservation(res_id):
+    if not _is_admin(request):
+        return jsonify({'error': 'unauthorized'}), 401
+    r = Reservation.query.get(res_id)
+    if not r:
+        return jsonify({'error': 'not found'}), 404
+    try:
+        db.session.delete(r)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'delete failed', 'details': str(e)}), 500
+    return jsonify({'ok': True}), 200
+
+
 @api_bp.route('/admin/promotions', methods=['GET'])
 def admin_list_promotions():
     if not _is_admin(request):

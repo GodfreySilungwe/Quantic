@@ -9,6 +9,14 @@ export default function Cart() {
   const [error, setError] = useState(null)
 
   const totalCents = items.reduce((s, it) => s + (it.price_cents || 0) * (it.qty || 1), 0)
+  
+  // Calculate original price (before any discounts)
+  const originalTotalCents = items.reduce((s, it) => {
+    const orig = it.original_price_cents || it.price_cents || 0
+    return s + orig * (it.qty || 1)
+  }, 0)
+  
+  const savings = originalTotalCents - totalCents
 
   async function handleCheckout(e) {
     e.preventDefault()
@@ -67,16 +75,39 @@ export default function Cart() {
         </div>
 
         <ul>
-          {items.map((it) => (
-            <li key={it.id} style={{ marginBottom: 8 }}>
-              {it.name} x {it.qty} — {(it.price_cents / 100).toFixed(2)} each
-            </li>
-          ))}
+          {items.map((it) => {
+            const hasDiscount = it.discount_percent && it.discount_percent > 0
+            const originalPrice = it.original_price_cents ? (it.original_price_cents / 100).toFixed(2) : null
+            const discountedPrice = (it.price_cents / 100).toFixed(2)
+            return (
+              <li key={it.id} style={{ marginBottom: 12, padding: 8, backgroundColor: hasDiscount ? '#f0f8ff' : 'transparent', borderRadius: 4, border: hasDiscount ? '1px solid #e0f0ff' : 'none' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                  <div>
+                    <strong>{it.name}</strong> x {it.qty}
+                    {hasDiscount && <span style={{ marginLeft: 8, color: '#ff6b6b', fontWeight: 600, fontSize: 12 }}>🎉 {it.discount_percent}% OFF</span>}
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    {hasDiscount && originalPrice && (
+                      <div style={{ fontSize: 12, color: '#999', textDecoration: 'line-through' }}>
+                        ${originalPrice} each
+                      </div>
+                    )}
+                    <div>{discountedPrice} each</div>
+                  </div>
+                </div>
+              </li>
+            )
+          })}
         </ul>
 
         <p>
           <strong>Total: </strong>
           {(totalCents / 100).toFixed(2)}
+          {savings > 0 && (
+            <span style={{ marginLeft: 12, color: '#ff6b6b', fontWeight: 600 }}>
+              💰 You saved: ${(savings / 100).toFixed(2)}
+            </span>
+          )}
         </p>
 
         <form onSubmit={handleCheckout} style={{ maxWidth: 480 }}>
